@@ -42,17 +42,17 @@ spec:
           valueFrom:
             secretKeyRef:
               name: postgres-secret
-              key: database
+              key: POSTGRES_DB
         - name: XOPERA_DATABASE_USER
           valueFrom:
             secretKeyRef:
               name: postgres-secret
-              key: username
+              key: POSTGRES_USER
         - name: XOPERA_DATABASE_PASSWORD
           valueFrom:
             secretKeyRef:
               name: postgres-secret
-              key: password
+              key: POSTGRES_PASSWORD
         - name: XOPERA_DATABASE_IP
           valueFrom:
             configMapKeyRef:
@@ -81,6 +81,10 @@ kind: Ingress
 metadata:
   name: xopera-ingress
 spec:
+  tls:
+  - hosts:
+      - xopera.com
+    secretName: xopera-secret-tls
   rules:
   - host: xopera.com
     http:

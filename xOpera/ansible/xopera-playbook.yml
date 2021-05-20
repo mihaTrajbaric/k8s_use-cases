@@ -22,6 +22,103 @@
     data:
       db_ip: postgres-service
 
+- name: Create secrets for tls
+  sodalite.k8s.secret:
+    name: xopera-secret-tls
+    type: kubernetes.io/tls
+    state: present
+    data:
+      tls.crt: >-
+        -----BEGIN CERTIFICATE-----
+        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
+        IJ/kBZvjpNms5cuPAYHy
+        -----END CERTIFICATE-----
+      tls.key: >-
+        -----BEGIN PRIVATE KEY-----
+        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
+        ANhARB9CxiJiETd9xep3OMzo8A7VE24=
+        -----END PRIVATE KEY-----
+
+
 - name: Create volume
   sodalite.k8s.persistent_volume:
     name: postgres-pv-volume
@@ -65,7 +162,7 @@
           container_port: 5432
           host_port: 5432
         env_from:
-          secret: postgres-secret
+          - secret: postgres-secret
         volume_mounts:
           - name: postgredb
             path: /var/lib/postgresql/data
@@ -163,6 +260,10 @@
         backend_service:
           name: xopera-service
           port: 8080
+    tls:
+    - hosts:
+      - xopera.com
+      secret: xopera-secret-tls
 
 
 
