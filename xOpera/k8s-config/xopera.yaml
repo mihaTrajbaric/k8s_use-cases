@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xopera-deployment
+  labels:
+    app: xopera
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: xopera
+  template:
+    metadata:
+      labels:
+        app: xopera
+    spec:
+      containers:
+      - name: xopera
+        image: sodaliteh2020/xopera-rest-api:2.4.1
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DEBUG
+          value: "true"
+        - name: LOG_LEVEL
+          value: debug
+        - name: XOPERA_GIT_TYPE
+          value: gitlab
+        - name: XOPERA_GIT_URL
+          value: https://gitlab.com
+        - name: XOPERA_GIT_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: xopera-secrets
+              key: git_token
+        - name: XOPERA_DATABASE_IP
+          valueFrom:
+            configMapKeyRef:
+              name: xopera-config
+              key: db_ip
+        - name: XOPERA_DATABASE_NAME
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: database
+        - name: XOPERA_DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: username
+        - name: XOPERA_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: password
+        - name: XOPERA_DATABASE_IP
+          valueFrom:
+            configMapKeyRef:
+              name: xopera-config
+              key: db_ip
+        - name: AUTH_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: xopera-secrets
+              key: auth_api_key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xopera-service
+spec:
+  selector:
+    app: xopera
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: xopera-ingress
+spec:
+  rules:
+  - host: xopera.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: xopera-service
+            port:
+              number: 8080

@@ -1,0 +1,172 @@
+---
+- name: Create postgres secrets
+  sodalite.k8s.secret:
+    name: postgres-secret
+    type: Opaque
+    data:
+      POSTGRES_DB: postgres  #def file needs base64 format, ansible could be ok with normal format
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+
+- name: Create xopera secrets
+  sodalite.k8s.secret:
+    name: xopera-secret
+    type: Opaque
+    data:
+      git_token: UDtkxWGhe6-b2GmspFSB
+      auth_api_key: test
+
+- name: Create xopera config map for xopera
+  sodalite.k8s.config_map:
+    name: xopera-config
+    data:
+      db_ip: postgres-service
+
+- name: Create volume
+  sodalite.k8s.persistent_volume:
+    name: postgres-pv-volume
+    labels:
+      type: local
+      app: postgres
+    storage_class: manual
+    capacity: 5Gi
+    access_modes:
+      - ReadWriteMany
+    host_path:
+      path: "/mnt/data"
+      type: DirectoryOrCreate
+
+- name: Create volume claim
+  sodalite.k8s.persistent_volume_claim:
+    name: postgres-pv-claim
+    state: present
+    labels:
+      app: postgres
+    storage_class: manual
+    access_modes:
+      - ReadWriteMany
+    resources:
+      min: 5Gi
+      # max: 10Gi
+
+
+- name: Deploy postgres
+  sodalite.k8s.deployment:
+    name: postgres
+    state: started
+    replicas: 1
+    labels:
+      app: postgres
+    containers:
+      - name: postgres
+        image: postgres:11
+        pull_policy: "IfNotPresent"
+        ports:
+          container_port: 5432
+          host_port: 5432
+        env_from:
+          secret: postgres-secret
+        volume_mounts:
+          - name: postgredb
+            path: /var/lib/postgresql/data
+
+    volumes:
+      - name: postgredb
+        claimName: postgres-pv-claim
+
+- name: Create postgres service
+  sodalite.k8s.service:
+    name: postgres-service
+    state: present
+    labels:
+      app: postgres
+    selector:
+      app: postgres
+    type: NodePort
+    ports:
+      - port: 5432
+        target_port: 5432
+
+- name: Create xopera deployment
+  sodalite.k8s.deployment:
+    name: xopera-deployment
+    state: started
+    replicas: 3
+    labels:
+      app: xopera
+    selector: # how selectors and labels work?
+      matchLabels:
+        app: xopera
+    containers:
+    - name: xopera
+      image: sodaliteh2020/xopera-rest-api:2.4.1
+      ports:
+        - container_port: 8080
+      env:
+      - name: DEBUG
+        value: "true"
+      - name: LOG_LEVEL
+        value: debug
+      - name: XOPERA_GIT_TYPE
+        value: gitlab
+      - name: XOPERA_GIT_URL
+        value: https://gitlab.com
+      - name: XOPERA_GIT_AUTH_TOKEN
+        secret:
+          name: xopera-secrets
+          key: git_token
+      - name: XOPERA_DATABASE_IP
+        config_map:
+          name: xopera-config
+          key: db_ip
+      - name: XOPERA_DATABASE_NAME
+        secret:
+          name: postgres-secret
+          key: database
+      - name: XOPERA_DATABASE_USER
+        secret:
+          name: postgres-secret
+          key: username
+      - name: XOPERA_DATABASE_PASSWORD
+        secret:
+          name: postgres-secret
+          key: password
+      - name: XOPERA_DATABASE_IP
+        config:
+          name: xopera-config
+          key: db_ip
+      - name: AUTH_API_KEY
+        secret:
+          name: xopera-secrets
+          key: auth_api_key
+
+- name: Create xopera service
+  sodalite.k8s.service:
+    name: xopera-service
+    state: present
+    selector:
+      app: xopera
+    type: NodePort
+    ports:
+      - port: 5432
+        target_port: 5432
+        protocol: TCP
+
+- name: Create xopera ingres
+  sodalite.k8s.ingress:
+    name: xopera-ingress
+    state: present
+    rules:
+    - host: xopera.com
+      paths:
+      - path_prefix: /
+        backend_service:
+          name: xopera-service
+          port: 8080
+
+
+
+
+
+
+
