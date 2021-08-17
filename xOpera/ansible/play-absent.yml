@@ -1,0 +1,88 @@
+- hosts: localhost
+  gather_facts: no
+  connection: local
+  tasks:
+    - name: Ensure xopera ingres is absent
+      sodalite.k8s.ingress:
+        name: xopera-ingress
+        namespace: xopera-namespace
+        state: absent
+
+    - name: Ensure xopera service is absent
+      sodalite.k8s.service:
+        name: xopera-service
+        namespace: xopera-namespace
+        state: absent
+
+    - name: Ensure xopera deployment is absent
+      sodalite.k8s.deployment:
+        name: xopera-deployment
+        namespace: xopera-namespace
+        state: absent
+        labels:
+          app: xopera
+        selector:
+          match_labels:
+            app: xopera
+        containers:
+          - name: xopera
+
+    - name: Ensure postgres service is absent
+      sodalite.k8s.service:
+        name: postgres-service
+        namespace: xopera-namespace
+        state: absent
+
+    - name: Ensure postgres is absent
+      sodalite.k8s.deployment:
+        name: postgres
+        namespace: xopera-namespace
+        state: absent
+        labels:
+          app: postgres
+        selector:
+          match_labels:
+            app: postgres
+        containers:
+          - name: postgres
+
+    - name: Ensure volume claim is absent
+      sodalite.k8s.pvc:
+        name: postgres-pv-claim
+        namespace: xopera-namespace
+        state: absent
+
+    - name: Ensure storage-class is absent
+      sodalite.k8s.storage_class:
+        name: postgres-storage-class
+        state: absent
+        provisioner: k8s.io/minikube-hostpath
+
+    - name: Ensure secrets object for tls is absent
+      sodalite.k8s.secret:
+        name: xopera-secret-tls
+        namespace: xopera-namespace
+        state: absent
+
+    - name: Ensure xopera-config is absent
+      sodalite.k8s.config_map:
+        name: xopera-config
+        namespace: xopera-namespace
+        state: absent
+
+    - name: Ensure xopera-secrets is absent
+      sodalite.k8s.secret:
+        name: xopera-secrets
+        namespace: xopera-namespace
+        state: absent
+
+    - name: Ensure postgres-secrets is absent
+      sodalite.k8s.secret:
+        name: postgres-secrets
+        namespace: xopera-namespace
+        state: absent
+
+    - name: Ensure xopera-namespace is absent
+      sodalite.k8s.namespace:
+        name: xopera-namespace
+        state: absent
