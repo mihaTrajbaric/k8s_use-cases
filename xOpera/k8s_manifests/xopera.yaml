@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: xopera-deployment
+  namespace: xopera-namespace
   labels:
     app: xopera
 spec:
@@ -16,7 +17,7 @@ spec:
     spec:
       containers:
       - name: xopera
-        image: sodaliteh2020/xopera-rest-api:2.4.1
+        image: sodaliteh2020/xopera-rest-api:2.7.0
         ports:
         - containerPort: 8080
         env:
@@ -24,50 +25,20 @@ spec:
           value: "true"
         - name: LOG_LEVEL
           value: debug
-        - name: XOPERA_GIT_TYPE
-          value: gitlab
-        - name: XOPERA_GIT_URL
-          value: https://gitlab.com
-        - name: XOPERA_GIT_AUTH_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: xopera-secrets
-              key: git_token
-        - name: XOPERA_DATABASE_IP
-          valueFrom:
-            configMapKeyRef:
+        envFrom:
+          - secretRef:
+              name: postgres-secrets
+            prefix: XOPERA_DATABASE_
+          - configMapRef:
               name: xopera-config
-              key: db_ip
-        - name: XOPERA_DATABASE_NAME
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_DB
-        - name: XOPERA_DATABASE_USER
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_USER
-        - name: XOPERA_DATABASE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_PASSWORD
-        - name: XOPERA_DATABASE_IP
-          valueFrom:
-            configMapKeyRef:
-              name: xopera-config
-              key: db_ip
-        - name: AUTH_API_KEY
-          valueFrom:
-            secretKeyRef:
+          - secretRef:
               name: xopera-secrets
-              key: auth_api_key
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: xopera-service
+  namespace: xopera-namespace
 spec:
   selector:
     app: xopera
@@ -80,6 +51,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: xopera-ingress
+  namespace: xopera-namespace
 spec:
   tls:
   - hosts:

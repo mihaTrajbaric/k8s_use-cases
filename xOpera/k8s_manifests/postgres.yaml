@@ -1,37 +1,37 @@
-kind: PersistentVolume
-apiVersion: v1
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
 metadata:
-  name: postgres-pv-volume
+  name: postgres-storage-class
   labels:
     type: local
     app: postgres
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteMany
-  hostPath:
-    path: "/mnt/data"
+provisioner: k8s.io/minikube-hostpath
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: postgres-pv-claim
+  namespace: xopera-namespace
   labels:
     app: postgres
 spec:
-  storageClassName: manual
+  storageClassName: postgres-storage-class
   accessModes:
     - ReadWriteMany
   resources:
     requests:
       storage: 5Gi
+    limits:
+      storage: 10Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
+  namespace: xopera-namespace
 spec:
   replicas: 1
   selector:
@@ -44,13 +44,15 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:11
+          image: postgres:13
           imagePullPolicy: "IfNotPresent"
           ports:
             - containerPort: 5432
+              hostPort: 5432
           envFrom:
             - secretRef:
                 name: postgres-secret
+              prefix: POSTGRES_
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: postgredb
@@ -63,6 +65,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres-service
+  namespace: xopera-namespace
   labels:
     app: postgres
 spec:
